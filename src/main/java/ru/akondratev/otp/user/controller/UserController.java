@@ -11,7 +11,6 @@ import ru.akondratev.otp.user.model.UserResponse;
 import ru.akondratev.otp.user.repository.UserRepository;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 public class UserController implements HttpHandler {
@@ -31,16 +30,6 @@ public class UserController implements HttpHandler {
         try {
             if ("/users/me".equals(path)){
                 handleMe(exchange, method);
-                return;
-            }
-
-            if ("/admin/users".equals(path)){
-                handleAdminUsers(exchange, method);
-                return;
-            }
-
-            if (path.startsWith("/admin/users/")){
-                handleDeleteUser(exchange, path, method);
                 return;
             }
 
@@ -67,53 +56,6 @@ public class UserController implements HttpHandler {
                 "id", currentUser.getId(),
                 "login", currentUser.getLogin(),
                 "role", currentUser.getRole()
-        ));
-    }
-
-    private void handleAdminUsers(HttpExchange exchange, String method) throws Exception {
-        if (!"GET".equalsIgnoreCase(method)) {
-            MethodNotAllowedHandler.handle(exchange,"GET");
-            return;
-        }
-
-        String token = extractBearerToken(exchange);
-        UserResponse currentUser = AuthUtil.requireUserByToken(token, tokenService, userRepository);
-        AuthUtil.requireAdmin(currentUser);
-
-        List<UserResponse> users = userRepository.findAllNonAdminUsers();
-        JsonResponseSender.sendJson(exchange, 200, users);
-    }
-
-    private void handleDeleteUser(HttpExchange exchange, String path, String method) throws Exception {
-        if (!"DELETE".equalsIgnoreCase(method)) {
-            MethodNotAllowedHandler.handle(exchange,"DELETE");
-            return;
-        }
-
-        String token = extractBearerToken(exchange);
-        UserResponse currentUser = AuthUtil.requireUserByToken(token, tokenService, userRepository);
-        AuthUtil.requireAdmin(currentUser);
-
-        String[] paths = path.split("/");
-        if (paths.length !=4) {
-            throw new IllegalArgumentException("Некорректный путь запроса");
-        }
-
-        long userId;
-        try {
-            userId = Long.parseLong(paths[3]);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Идентификатор пользователя должен быть числом");
-        }
-
-        boolean deleted = userRepository.deleteById(userId);
-        if (!deleted) {
-            throw new IllegalArgumentException("Пользователь не найден");
-        }
-
-        JsonResponseSender.sendJson(exchange, 200, Map.of(
-                "message", "Пользователь успешно удален",
-                "id", userId
         ));
     }
 

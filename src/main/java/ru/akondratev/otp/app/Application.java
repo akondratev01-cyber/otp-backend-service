@@ -18,7 +18,7 @@ public class Application {
             server.createContext("/auth/login", components.authController());
             server.createContext("/auth/logout", components.authController());
             server.createContext("/users/me", components.userController());
-            server.createContext("/admin/users", components.userController());
+            server.createContext("/admin/users", components.adminUserController());
             server.createContext("/otp/generate", components.otpController());
             server.createContext("/otp/validate", components.otpController());
             server.createContext("/admin/otp-config", components.otpAdminController());

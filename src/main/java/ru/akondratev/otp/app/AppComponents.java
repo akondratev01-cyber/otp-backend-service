@@ -17,6 +17,8 @@ import ru.akondratev.otp.otp.scheduler.OtpExpirationScheduler;
 import ru.akondratev.otp.otp.service.OtpService;
 import ru.akondratev.otp.user.controller.UserController;
 import ru.akondratev.otp.user.repository.UserRepository;
+import ru.akondratev.otp.admin.controller.AdminUserController;
+import ru.akondratev.otp.admin.service.AdminUserService;
 
 import javax.sql.DataSource;
 
@@ -42,6 +44,9 @@ public class AppComponents {
     private final UserController userController;
     private final OtpController otpController;
     private final OtpAdminController otpAdminController;
+
+    private final AdminUserService adminUserService;
+    private final AdminUserController adminUserController;
 
     private final OtpExpirationScheduler otpExpirationScheduler;
 
@@ -88,6 +93,8 @@ public class AppComponents {
         this.tokenService = new TokenService(properties);
         this.authService = new AuthService(userRepository, tokenService);
 
+        this.adminUserService = new AdminUserService(userRepository);
+
         this.otpService = new OtpService(
                 otpConfigRepository,
                 otpCodeRepository,
@@ -99,6 +106,8 @@ public class AppComponents {
 
         this.authController = new AuthController(authService);
         this.userController = new UserController(userRepository, tokenService);
+        this.adminUserController =
+                new AdminUserController(adminUserService, tokenService, userRepository);
         this.otpController = new OtpController(otpService, tokenService, userRepository);
         this.otpAdminController = new OtpAdminController(otpService, tokenService, userRepository);
 
@@ -153,6 +162,10 @@ public class AppComponents {
         return authService;
     }
 
+    public AdminUserService adminUserService() {
+        return adminUserService;
+    }
+
     public OtpService otpService() {
         return otpService;
     }
@@ -171,6 +184,10 @@ public class AppComponents {
 
     public OtpAdminController otpAdminController() {
         return otpAdminController;
+    }
+
+    public AdminUserController adminUserController() {
+        return adminUserController;
     }
 
     public OtpExpirationScheduler otpExpirationScheduler() {
