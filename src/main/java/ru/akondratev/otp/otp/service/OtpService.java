@@ -14,6 +14,7 @@ import ru.akondratev.otp.notification.sms.SmsOtpNotificationService;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.concurrent.ThreadLocalRandom;
+import java.time.Duration;
 
 public class OtpService {
 
@@ -41,6 +42,18 @@ public class OtpService {
 
     public long generateOtp(long userId, String operationId, OtpChannel channel, String email) throws SQLException {
         validateGenerateRequest(userId, operationId, channel, email);
+
+        otpCodeRepository.markExpiredCodes();
+
+        OtpCode existingOtp = otpCodeRepository.findActiveCodeByOperation(userId, operationId);
+        if (existingOtp != null && existingOtp.getExpiresAt().isAfter(LocalDateTime.now())) {
+            long remainingSeconds = Duration.between(LocalDateTime.now(), existingOtp.getExpiresAt()).getSeconds();
+            remainingSeconds = Math.max(remainingSeconds, 1);
+
+            throw new IllegalArgumentException(
+                    "Время действия ранее сгенерированного OTP-кода еще не истекло. Повторите попытку через " + remainingSeconds + " сек."
+            );
+        }
 
         OtpConfig config = otpConfigRepository.getCurrentConfig();
         if (config == null) {

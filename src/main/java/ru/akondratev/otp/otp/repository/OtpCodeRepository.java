@@ -87,6 +87,32 @@ public class OtpCodeRepository {
         }
     }
 
+    public OtpCode findActiveCodeByOperation(long userId, String operationId) throws SQLException {
+        String sql = """
+                SELECT id, user_id, operation_id, code, status, channel, created_at, expires_at, used_at
+                FROM otp_codes
+                WHERE user_id = ?
+                    AND operation_id = ?
+                    AND status = 'ACTIVE'
+                ORDER BY id DESC
+                LIMIT 1
+                """;
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setLong(1, userId);
+            statement.setString(2, operationId);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return mapRowToOtpCode(resultSet);
+                }
+                return null;
+            }
+        }
+    }
+
     public boolean markAsUsed(long otpId) throws SQLException {
         String sql = """
                 UPDATE otp_codes
