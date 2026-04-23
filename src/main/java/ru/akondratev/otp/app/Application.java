@@ -8,11 +8,16 @@ import java.net.InetSocketAddress;
 public class Application {
     public static void main(String[] args) {
         try {
+            StartupPrinter.printBanner();
+            StartupPrinter.printStep(1, 4, "Loading application properties...");
             ApplicationProperties properties = new ApplicationProperties();
+
+            StartupPrinter.printStep(2, 4, "Initializing application components...");
             AppComponents components = new AppComponents(properties);
 
             int port = properties.getInt("app.port");
 
+            StartupPrinter.printStep(3, 4, "Registering HTTP routes and starting server...");
             HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
             server.createContext("/auth/register", components.authController());
             server.createContext("/auth/login", components.authController());
@@ -25,21 +30,10 @@ public class Application {
             server.setExecutor(null);
             server.start();
 
+            StartupPrinter.printStep(4, 4, "Starting OTP expiration scheduler...");
             components.otpExpirationScheduler().start();
 
-            System.out.println("HTTP Server Started on port " + port);
-            System.out.println("Available endpoints: ");
-            System.out.println("POST /auth/register - Регистрация нового пользователя");
-            System.out.println("POST /auth/login - Логин пользователя");
-            System.out.println("POST /auth/logout - Логаут пользователя");
-            System.out.println("GET /users/me - Получить информацию о текущем пользователе (требуется токен в заголовке Authorization)");
-            System.out.println("GET /admin/users - Получить список всех пользователей (требуется токен администратора в заголовке Authorization)");
-            System.out.println("DELETE /admin/users/{id} - Удалить пользователя по id (требуется токен администратора в заголовке Authorization)");
-            System.out.println("POST /otp/generate - Сгенерировать OTP-код");
-            System.out.println("POST /otp/validate - Проверить OTP-код");
-            System.out.println("OTP expiration scheduler started");
-            System.out.println("GET /admin/otp-config - Получить текущую OTP-конфигурацию");
-            System.out.println("PUT /admin/otp-config - Обновить OTP-конфигурацию");
+            StartupPrinter.printSummary(port);
 
         } catch (Exception e) {
             e.printStackTrace();
