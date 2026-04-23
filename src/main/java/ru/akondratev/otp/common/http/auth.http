@@ -1,0 +1,19 @@
+### Регистрация пользователя
+POST http://localhost:8080/auth/register
+Content-Type: application/json
+
+{
+  "login": "http_user_1",
+  "password": "Password123"
+}
+
+###
+
+### Логин пользователя
+POST http://localhost:8080/auth/login
+Content-Type: application/json
+
+{
+  "login": "http_user_1",
+  "password": "Password123"
+}
