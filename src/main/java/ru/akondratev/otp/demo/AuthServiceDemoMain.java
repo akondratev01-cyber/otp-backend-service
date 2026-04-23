@@ -1,4 +1,4 @@
-package ru.akondratev.otp.app;
+package ru.akondratev.otp.demo;
 
 import ru.akondratev.otp.auth.service.AuthService;
 import ru.akondratev.otp.auth.service.TokenService;
