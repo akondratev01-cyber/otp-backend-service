@@ -9,7 +9,6 @@ import ru.akondratev.otp.notification.email.EmailOtpNotificationService;
 import ru.akondratev.otp.notification.file.FileOtpNotificationService;
 import ru.akondratev.otp.notification.sms.SmsOtpNotificationService;
 import ru.akondratev.otp.notification.telegram.TelegramOtpNotificationService;
-import ru.akondratev.otp.otp.controller.OtpAdminController;
 import ru.akondratev.otp.otp.controller.OtpController;
 import ru.akondratev.otp.otp.repository.OtpCodeRepository;
 import ru.akondratev.otp.otp.repository.OtpConfigRepository;
@@ -19,6 +18,8 @@ import ru.akondratev.otp.user.controller.UserController;
 import ru.akondratev.otp.user.repository.UserRepository;
 import ru.akondratev.otp.admin.controller.AdminUserController;
 import ru.akondratev.otp.admin.service.AdminUserService;
+import ru.akondratev.otp.admin.controller.AdminOtpConfigController;
+import ru.akondratev.otp.admin.service.AdminOtpConfigService;
 
 import javax.sql.DataSource;
 
@@ -43,10 +44,12 @@ public class AppComponents {
     private final AuthController authController;
     private final UserController userController;
     private final OtpController otpController;
-    private final OtpAdminController otpAdminController;
+
 
     private final AdminUserService adminUserService;
     private final AdminUserController adminUserController;
+    private final AdminOtpConfigService adminOtpConfigService;
+    private final AdminOtpConfigController adminOtpConfigController;
 
     private final OtpExpirationScheduler otpExpirationScheduler;
 
@@ -95,6 +98,7 @@ public class AppComponents {
 
         this.adminUserService = new AdminUserService(userRepository);
 
+
         this.otpService = new OtpService(
                 otpConfigRepository,
                 otpCodeRepository,
@@ -104,12 +108,15 @@ public class AppComponents {
                 smsOtpNotificationService
         );
 
+        this.adminOtpConfigService = new AdminOtpConfigService(otpService);
+
         this.authController = new AuthController(authService);
         this.userController = new UserController(userRepository, tokenService);
         this.adminUserController =
                 new AdminUserController(adminUserService, tokenService, userRepository);
+        this.adminOtpConfigController =
+                new AdminOtpConfigController(adminOtpConfigService, tokenService, userRepository);
         this.otpController = new OtpController(otpService, tokenService, userRepository);
-        this.otpAdminController = new OtpAdminController(otpService, tokenService, userRepository);
 
         this.otpExpirationScheduler =
                 new OtpExpirationScheduler(
@@ -166,6 +173,10 @@ public class AppComponents {
         return adminUserService;
     }
 
+    public AdminOtpConfigService adminOtpConfigService() {
+        return adminOtpConfigService;
+    }
+
     public OtpService otpService() {
         return otpService;
     }
@@ -182,8 +193,8 @@ public class AppComponents {
         return otpController;
     }
 
-    public OtpAdminController otpAdminController() {
-        return otpAdminController;
+    public AdminOtpConfigController adminOtpConfigController() {
+        return adminOtpConfigController;
     }
 
     public AdminUserController adminUserController() {

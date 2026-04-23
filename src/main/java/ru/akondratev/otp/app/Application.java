@@ -21,7 +21,7 @@ public class Application {
             server.createContext("/admin/users", components.adminUserController());
             server.createContext("/otp/generate", components.otpController());
             server.createContext("/otp/validate", components.otpController());
-            server.createContext("/admin/otp-config", components.otpAdminController());
+            server.createContext("/admin/otp-config", components.adminOtpConfigController());
             server.setExecutor(null);
             server.start();
 
