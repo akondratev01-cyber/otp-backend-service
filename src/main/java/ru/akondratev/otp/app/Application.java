@@ -1,97 +1,31 @@
 package ru.akondratev.otp.app;
 
 import com.sun.net.httpserver.HttpServer;
-import ru.akondratev.otp.auth.controller.AuthController;
-import ru.akondratev.otp.auth.service.AuthService;
-import ru.akondratev.otp.auth.service.TokenService;
 import ru.akondratev.otp.config.ApplicationProperties;
-import ru.akondratev.otp.config.DatabaseConfig;
-import ru.akondratev.otp.user.repository.UserRepository;
-import ru.akondratev.otp.user.controller.UserController;
-import ru.akondratev.otp.otp.controller.OtpController;
-import ru.akondratev.otp.otp.repository.OtpCodeRepository;
-import ru.akondratev.otp.otp.repository.OtpConfigRepository;
-import ru.akondratev.otp.otp.service.OtpService;
-import ru.akondratev.otp.notification.file.FileOtpNotificationService;
-import ru.akondratev.otp.otp.scheduler.OtpExpirationScheduler;
-import ru.akondratev.otp.otp.controller.OtpAdminController;
-import ru.akondratev.otp.notification.email.EmailOtpNotificationService;
-import ru.akondratev.otp.notification.telegram.TelegramOtpNotificationService;
-import ru.akondratev.otp.notification.sms.SmsOtpNotificationService;
 
-import javax.sql.DataSource;
 import java.net.InetSocketAddress;
 
 public class Application {
     public static void main(String[] args) {
         try {
             ApplicationProperties properties = new ApplicationProperties();
-            DatabaseConfig databaseConfig = new DatabaseConfig(properties);
-            DataSource dataSource = databaseConfig.dataSource();
-            FileOtpNotificationService fileOtpNotificationService =
-                    new FileOtpNotificationService(properties.get("otp.file.path"));
-            EmailOtpNotificationService emailOtpNotificationService =
-                    new EmailOtpNotificationService(
-                            properties.get("mail.smtp.host"),
-                            properties.getInt("mail.smtp.port"),
-                            properties.get("mail.smtp.username"),
-                            properties.get("mail.smtp.password"),
-                            properties.get("mail.from.email"),
-                            Boolean.parseBoolean(properties.get("mail.smtp.auth")),
-                            Boolean.parseBoolean(properties.get("mail.smtp.starttls.enable"))
-                    );
-            TelegramOtpNotificationService telegramOtpNotificationService =
-                    new TelegramOtpNotificationService(
-                            properties.get("telegram.bot.token"),
-                            properties.get("telegram.chat.id")
-                    );
-            SmsOtpNotificationService smsOtpNotificationService =
-                    new SmsOtpNotificationService(
-                            properties.get("smpp.host"),
-                            properties.getInt("smpp.port"),
-                            properties.get("smpp.system_id"),
-                            properties.get("smpp.password"),
-                            properties.get("smpp.system_type"),
-                            properties.get("smpp.source_addr")
-                    );
-
-            UserRepository userRepository = new UserRepository(dataSource);
-            OtpConfigRepository otpConfigRepository = new OtpConfigRepository(dataSource);
-            OtpCodeRepository otpCodeRepository = new OtpCodeRepository(dataSource);
-            OtpService otpService = new OtpService(
-                    otpConfigRepository,
-                    otpCodeRepository,
-                    fileOtpNotificationService,
-                    emailOtpNotificationService,
-                    telegramOtpNotificationService,
-                    smsOtpNotificationService
-            );
-            OtpExpirationScheduler otpExpirationScheduler =
-                    new OtpExpirationScheduler(otpService, properties.getInt("otp.expire.check.interval.seconds"));
-            TokenService tokenService = new TokenService(properties);
-            AuthService authService = new AuthService(userRepository, tokenService);
-            AuthController authController = new AuthController(authService);
-            UserController userController = new UserController(userRepository, tokenService);
-            OtpController otpController = new OtpController(otpService, tokenService, userRepository);
-            OtpAdminController otpAdminController =
-                    new OtpAdminController(otpService, tokenService, userRepository);
-
+            AppComponents components = new AppComponents(properties);
 
             int port = properties.getInt("app.port");
 
             HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
-            server.createContext("/auth/register", authController);
-            server.createContext("/auth/login", authController);
-            server.createContext("/auth/logout", authController);
-            server.createContext("/users/me", userController);
-            server.createContext("/admin/users", userController);
-            server.createContext("/otp/generate", otpController);
-            server.createContext("/otp/validate", otpController);
-            server.createContext("/admin/otp-config", otpAdminController);
+            server.createContext("/auth/register", components.authController());
+            server.createContext("/auth/login", components.authController());
+            server.createContext("/auth/logout", components.authController());
+            server.createContext("/users/me", components.userController());
+            server.createContext("/admin/users", components.userController());
+            server.createContext("/otp/generate", components.otpController());
+            server.createContext("/otp/validate", components.otpController());
+            server.createContext("/admin/otp-config", components.otpAdminController());
             server.setExecutor(null);
             server.start();
 
-            otpExpirationScheduler.start();
+            components.otpExpirationScheduler().start();
 
             System.out.println("HTTP Server Started on port " + port);
             System.out.println("Available endpoints: ");
