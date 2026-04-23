@@ -1,0 +1,232 @@
+### OTP Backend Service - demo http tests
+### Перед запуском:
+### 1. Поднять PostgreSQL и применить sql/01_init.sql
+### 2. Запустить backend на http://localhost:8080
+### 3. Для EMAIL / TELEGRAM / SMS при необходимости настроить внешние интеграции
+### 4. При необходимости скорректировать логины/пароли под свои данные
+
+@baseUrl = http://localhost:8080
+@adminLogin = demo_auth_user
+@adminPassword = Password123
+@userLogin = otp_user_1
+@userPassword = Password123
+
+### ------------------------------------------------------------
+### AUTH
+### ------------------------------------------------------------
+
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "login": "{{adminLogin}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+
+@adminToken = {{loginAdmin.response.body.token}}
+
+# @name loginUser
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "login": "{{userLogin}}",
+  "password": "{{userPassword}}"
+}
+
+###
+
+@userToken = {{loginUser.response.body.token}}
+
+### ------------------------------------------------------------
+### USER API
+### ------------------------------------------------------------
+
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{userToken}}
+
+### ------------------------------------------------------------
+### ADMIN API
+### ------------------------------------------------------------
+
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{adminToken}}
+
+###
+
+GET {{baseUrl}}/admin/otp-config
+Authorization: Bearer {{adminToken}}
+
+###
+
+PUT {{baseUrl}}/admin/otp-config
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "codeLength": 6,
+  "ttlSeconds": 300
+}
+
+###
+
+GET {{baseUrl}}/admin/otp-config
+Authorization: Bearer {{adminToken}}
+
+### ------------------------------------------------------------
+### OTP API - FILE
+### ------------------------------------------------------------
+
+# @name generateFileOtp
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_file_1",
+  "channel": "FILE"
+}
+
+###
+
+### После выполнения запроса выше взять код из файла:
+### var/otp/otp-codes.log
+### и подставить его в запрос ниже вместо 000000
+
+POST {{baseUrl}}/otp/validate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_file_1",
+  "code": "000000"
+}
+
+###
+
+### Повторная валидация того же кода должна вернуть valid=false
+POST {{baseUrl}}/otp/validate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_file_1",
+  "code": "000000"
+}
+
+### ------------------------------------------------------------
+### OTP API - EMAIL
+### ------------------------------------------------------------
+
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_email_1",
+  "channel": "EMAIL",
+  "email": "your_email@example.com"
+}
+
+### ------------------------------------------------------------
+### OTP API - TELEGRAM
+### ------------------------------------------------------------
+
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_tg_1",
+  "channel": "TELEGRAM"
+}
+
+### ------------------------------------------------------------
+### OTP API - SMS
+### ------------------------------------------------------------
+
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_sms_1",
+  "channel": "SMS"
+}
+
+### ------------------------------------------------------------
+### NEGATIVE TESTS
+### ------------------------------------------------------------
+
+### USER не должен иметь доступ к admin users
+GET {{baseUrl}}/admin/users
+Authorization: Bearer {{userToken}}
+
+###
+
+### USER не должен иметь доступ к admin otp config
+GET {{baseUrl}}/admin/otp-config
+Authorization: Bearer {{userToken}}
+
+###
+
+### EMAIL без email
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_email_error_1",
+  "channel": "EMAIL"
+}
+
+###
+
+### Неверный канал
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_bad_channel_1",
+  "channel": "PIGEON"
+}
+
+###
+
+### Повторная генерация OTP по той же операции до истечения TTL
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_duplicate_1",
+  "channel": "FILE"
+}
+
+###
+
+POST {{baseUrl}}/otp/generate
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "operationId": "http_duplicate_1",
+  "channel": "FILE"
+}
+
+### ------------------------------------------------------------
+### LOGOUT
+### ------------------------------------------------------------
+
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{userToken}}
+
+###
+
+### После logout запрос должен вернуть ошибку
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{userToken}}
