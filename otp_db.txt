@@ -1,5 +1,0 @@
-Host: localhost
-Port: 5432
-Database: otp_service_db
-Username: otp_user
-Password: OtpPass123!
