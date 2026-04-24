@@ -2,6 +2,8 @@ package ru.akondratev.otp.common.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.akondratev.otp.common.json.ObjectMapperFactory;
 
 import java.io.IOException;
@@ -10,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 
 public class JsonResponseSender {
 
+    private static final Logger logger = LoggerFactory.getLogger(JsonResponseSender.class);
     private static final ObjectMapper OBJECT_MAPPER = ObjectMapperFactory.getObjectMapper();
 
     private JsonResponseSender() {
@@ -24,5 +27,7 @@ public class JsonResponseSender {
         try (OutputStream outputStream = exchange.getResponseBody()) {
             outputStream.write(responseBytes);
         }
+
+        logger.info("Response sent: {} {} -> {}", exchange.getRequestMethod(), exchange.getRequestURI().getPath(), statusCode);
     }
 }

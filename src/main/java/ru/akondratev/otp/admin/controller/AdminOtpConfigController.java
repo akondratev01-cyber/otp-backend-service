@@ -2,6 +2,8 @@ package ru.akondratev.otp.admin.controller;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.akondratev.otp.admin.service.AdminOtpConfigService;
 import ru.akondratev.otp.auth.service.TokenService;
 import ru.akondratev.otp.auth.util.AuthUtil;
@@ -18,6 +20,8 @@ import java.io.IOException;
 import java.util.Map;
 
 public class AdminOtpConfigController implements HttpHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminOtpConfigController.class);
 
     private final AdminOtpConfigService adminOtpConfigService;
     private final TokenService tokenService;
@@ -38,6 +42,8 @@ public class AdminOtpConfigController implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
 
+        logger.info("Incoming request: {} {}", method, path);
+
         try {
             if (!"/admin/otp-config".equals(path)) {
                 ErrorResponseSender.sendError(exchange, 404, "Ресурс не найден");
@@ -57,9 +63,10 @@ public class AdminOtpConfigController implements HttpHandler {
             MethodNotAllowedHandler.handle(exchange, "GET, PUT");
 
         } catch (IllegalArgumentException e) {
+            logger.warn("Request validation failed: {} {} -> 400, message={}", method, path, e.getMessage());
             ErrorResponseSender.sendError(exchange, 400, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Unexpected error while handling request: {} {} -> 500", method, path, e);
             ErrorResponseSender.sendError(exchange, 500, "Внутренняя ошибка сервера");
         }
     }
@@ -67,6 +74,10 @@ public class AdminOtpConfigController implements HttpHandler {
     private void handleGetConfig(HttpExchange exchange) throws Exception {
         UserResponse currentUser = requireAdminUser(exchange);
         OtpConfig config = adminOtpConfigService.getCurrentConfig();
+
+        logger.info("OTP config requested by admin: adminId={}, adminLogin={}",
+                currentUser.getId(),
+                currentUser.getLogin());
 
         JsonResponseSender.sendJson(exchange, 200, Map.of(
                 "id", config.getId(),
@@ -78,7 +89,7 @@ public class AdminOtpConfigController implements HttpHandler {
     }
 
     private void handleUpdateConfig(HttpExchange exchange) throws Exception {
-        requireAdminUser(exchange);
+        UserResponse currentUser = requireAdminUser(exchange);
 
         UpdateOtpConfigRequest request = RequestBodyReader.readJson(exchange, UpdateOtpConfigRequest.class);
         if (request == null) {
@@ -96,6 +107,12 @@ public class AdminOtpConfigController implements HttpHandler {
         adminOtpConfigService.updateConfig(request.getCodeLength(), request.getTtlSeconds());
 
         OtpConfig config = adminOtpConfigService.getCurrentConfig();
+
+        logger.info("OTP config updated by admin: adminId={}, adminLogin={}, codeLength={}, ttlSeconds={}",
+                currentUser.getId(),
+                currentUser.getLogin(),
+                config.getCodeLength(),
+                config.getTtlSeconds());
 
         JsonResponseSender.sendJson(exchange, 200, Map.of(
                 "message", "Конфигурация OTP успешно обновлена",

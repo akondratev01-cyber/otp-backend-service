@@ -2,6 +2,8 @@ package ru.akondratev.otp.user.controller;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.akondratev.otp.auth.service.TokenService;
 import ru.akondratev.otp.auth.util.AuthUtil;
 import ru.akondratev.otp.common.http.ErrorResponseSender;
@@ -14,6 +16,9 @@ import java.io.IOException;
 import java.util.Map;
 
 public class UserController implements HttpHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
+
     private final UserRepository userRepository;
     private final TokenService tokenService;
 
@@ -27,30 +32,34 @@ public class UserController implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
 
+        logger.info("Incoming request: {} {}", method, path);
+
         try {
-            if ("/users/me".equals(path)){
+            if ("/users/me".equals(path)) {
                 handleMe(exchange, method);
                 return;
             }
 
             ErrorResponseSender.sendError(exchange, 404, "Ресурс не найден");
-
         } catch (IllegalArgumentException e) {
+            logger.warn("Request validation failed: {} {} -> 400, message={}", method, path, e.getMessage());
             ErrorResponseSender.sendError(exchange, 400, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Unexpected error while handling request: {} {} -> 500", method, path, e);
             ErrorResponseSender.sendError(exchange, 500, "Внутренняя ошибка сервера");
         }
     }
 
     private void handleMe(HttpExchange exchange, String method) throws Exception {
         if (!"GET".equalsIgnoreCase(method)) {
-            MethodNotAllowedHandler.handle(exchange,"GET");
+            MethodNotAllowedHandler.handle(exchange, "GET");
             return;
         }
 
         String token = extractBearerToken(exchange);
         UserResponse currentUser = AuthUtil.requireUserByToken(token, tokenService, userRepository);
+
+        logger.info("Current user info requested: userId={}, login={}", currentUser.getId(), currentUser.getLogin());
 
         JsonResponseSender.sendJson(exchange, 200, Map.of(
                 "id", currentUser.getId(),

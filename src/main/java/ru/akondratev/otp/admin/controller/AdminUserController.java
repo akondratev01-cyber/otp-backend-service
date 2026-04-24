@@ -2,6 +2,8 @@ package ru.akondratev.otp.admin.controller;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.akondratev.otp.admin.service.AdminUserService;
 import ru.akondratev.otp.auth.service.TokenService;
 import ru.akondratev.otp.auth.util.AuthUtil;
@@ -16,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 
 public class AdminUserController implements HttpHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminUserController.class);
 
     private final AdminUserService adminUserService;
     private final TokenService tokenService;
@@ -36,6 +40,8 @@ public class AdminUserController implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
 
+        logger.info("Incoming request: {} {}", method, path);
+
         try {
             if ("/admin/users".equals(path)) {
                 handleGetUsers(exchange, method);
@@ -50,9 +56,10 @@ public class AdminUserController implements HttpHandler {
             ErrorResponseSender.sendError(exchange, 404, "Ресурс не найден");
 
         } catch (IllegalArgumentException e) {
+            logger.warn("Request validation failed: {} {} -> 400, message={}", method, path, e.getMessage());
             ErrorResponseSender.sendError(exchange, 400, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Unexpected error while handling request: {} {} -> 500", method, path, e);
             ErrorResponseSender.sendError(exchange, 500, "Внутренняя ошибка сервера");
         }
     }
@@ -63,9 +70,15 @@ public class AdminUserController implements HttpHandler {
             return;
         }
 
-        requireAdminUser(exchange);
+        UserResponse adminUser = requireAdminUser(exchange);
 
         List<UserResponse> users = adminUserService.getAllNonAdminUsers();
+
+        logger.info("Admin users list requested: adminId={}, adminLogin={}, count={}",
+                adminUser.getId(),
+                adminUser.getLogin(),
+                users.size());
+
         JsonResponseSender.sendJson(exchange, 200, users);
     }
 
@@ -75,7 +88,7 @@ public class AdminUserController implements HttpHandler {
             return;
         }
 
-        requireAdminUser(exchange);
+        UserResponse adminUser = requireAdminUser(exchange);
 
         String[] paths = path.split("/");
         if (paths.length != 4) {
@@ -90,6 +103,11 @@ public class AdminUserController implements HttpHandler {
         }
 
         adminUserService.deleteUserById(userId);
+
+        logger.info("User deleted by admin: adminId={}, adminLogin={}, deletedUserId={}",
+                adminUser.getId(),
+                adminUser.getLogin(),
+                userId);
 
         JsonResponseSender.sendJson(exchange, 200, Map.of(
                 "message", "Пользователь успешно удален",

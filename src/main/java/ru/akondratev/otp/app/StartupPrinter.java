@@ -7,17 +7,11 @@ public final class StartupPrinter {
 
     public static void printBanner() {
         System.out.println();
-        System.out.println(" ██████  ████████ ██████");
-        System.out.println("██    ██    ██    ██   ██");
-        System.out.println("██    ██    ██    ██████");
-        System.out.println("██    ██    ██    ██");
-        System.out.println(" ██████     ██    ██");
-        System.out.println();
-        System.out.println("██████   █████   ██████ ██   ██ ███████ ███    ██ ██████");
-        System.out.println("██   ██ ██   ██ ██      ██  ██  ██      ████   ██ ██   ██");
-        System.out.println("██████  ███████ ██      █████   █████   ██ ██  ██ ██   ██");
-        System.out.println("██   ██ ██   ██ ██      ██  ██  ██      ██  ██ ██ ██   ██");
-        System.out.println("██████  ██   ██  ██████ ██   ██ ███████ ██   ████ ██████");
+        System.out.println("   ____  ______ ____    ____             __                __");
+        System.out.println("  / __ \\/_  __/ __ \\  / __ )____ ______/ /_____  ____  __/ /");
+        System.out.println(" / / / / / / / /_/ / / __  / __ `/ ___/ //_/ _ \\/ __ \\/ / / ");
+        System.out.println("/ /_/ / / / / ____/ / /_/ / /_/ / /__/ ,< /  __/ / / / / /  ");
+        System.out.println("\\____/ /_/ /_/     /_____/\\__,_/\\___/_/|_|\\___/_/ /_/_/_/   ");
         System.out.println();
         System.out.println("============================================================");
         System.out.println("                     OTP Backend Service                    ");

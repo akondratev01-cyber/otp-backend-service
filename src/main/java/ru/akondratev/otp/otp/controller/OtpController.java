@@ -2,6 +2,8 @@ package ru.akondratev.otp.otp.controller;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ru.akondratev.otp.auth.service.TokenService;
 import ru.akondratev.otp.auth.util.AuthUtil;
 import ru.akondratev.otp.common.http.ErrorResponseSender;
@@ -19,6 +21,8 @@ import java.io.IOException;
 import java.util.Map;
 
 public class OtpController implements HttpHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(OtpController.class);
 
     private final OtpService otpService;
     private final TokenService tokenService;
@@ -39,6 +43,8 @@ public class OtpController implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
         String method = exchange.getRequestMethod();
 
+        logger.info("Incoming request: {} {}", method, path);
+
         try {
             if ("/otp/generate".equals(path)) {
                 handleGenerate(exchange, method);
@@ -53,9 +59,10 @@ public class OtpController implements HttpHandler {
             ErrorResponseSender.sendError(exchange, 404, "Ресурс не найден");
 
         } catch (IllegalArgumentException e) {
+            logger.warn("Request validation failed: {} {} -> 400, message={}", method, path, e.getMessage());
             ErrorResponseSender.sendError(exchange, 400, e.getMessage());
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Unexpected error while handling request: {} {} -> 500", method, path, e);
             ErrorResponseSender.sendError(exchange, 500, "Внутренняя ошибка сервера");
         }
     }
@@ -82,6 +89,12 @@ public class OtpController implements HttpHandler {
                 channel,
                 request.getEmail()
         );
+
+        logger.info("OTP generated successfully: userId={}, operationId={}, channel={}, otpId={}",
+                currentUser.getId(),
+                request.getOperationId(),
+                channel.name(),
+                otpId);
 
         JsonResponseSender.sendJson(exchange, 201, Map.of(
                 "message", "OTP-код успешно создан",
@@ -111,6 +124,11 @@ public class OtpController implements HttpHandler {
                 request.getOperationId(),
                 request.getCode()
         );
+
+        logger.info("OTP validated: userId={}, operationId={}, valid={}",
+                currentUser.getId(),
+                request.getOperationId(),
+                valid);
 
         JsonResponseSender.sendJson(exchange, 200, Map.of(
                 "valid", valid,
